@@ -3,7 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { COLORS } from './src/utils/constants';
@@ -20,7 +20,7 @@ const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
 const TabIcon = ({ icon, focused }) => (
-  <View style={styles.tabIconContainer}>
+  <View style={[styles.tabIconContainer, focused && styles.tabIconContainerFocused]}>
     <Text style={[styles.tabIcon, focused && styles.tabIconFocused]}>{icon}</Text>
   </View>
 );
@@ -32,8 +32,9 @@ const MainTabs = ({ user }) => {
         headerShown: false,
         tabBarStyle: styles.tabBar,
         tabBarActiveTintColor: COLORS.primary,
-        tabBarInactiveTintColor: COLORS.textSecondary,
+        tabBarInactiveTintColor: COLORS.textMuted,
         tabBarLabelStyle: styles.tabLabel,
+        tabBarHideOnKeyboard: true,
       }}
     >
       <Tab.Screen
@@ -49,8 +50,8 @@ const MainTabs = ({ user }) => {
         name="Generate"
         component={GenerateSessionScreen}
         options={{
-          tabBarLabel: 'Run',
-          tabBarIcon: ({ focused }) => <TabIcon icon="🏃" focused={focused} />,
+          tabBarLabel: 'Training',
+          tabBarIcon: ({ focused }) => <TabIcon icon="⚡" focused={focused} />,
         }}
       />
       <Tab.Screen
@@ -66,8 +67,8 @@ const MainTabs = ({ user }) => {
         component={ProfileScreen}
         initialParams={{ user }}
         options={{
-          tabBarLabel: 'Profile',
-          tabBarIcon: ({ focused }) => <TabIcon icon="👤" focused={focused} />,
+          tabBarLabel: 'Settings',
+          tabBarIcon: ({ focused }) => <TabIcon icon="⚙️" focused={focused} />,
         }}
       />
     </Tab.Navigator>
@@ -82,11 +83,20 @@ const AppNavigator = () => {
   }
 
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator 
+      screenOptions={{ 
+        headerShown: false,
+        animation: 'slide_from_right'
+      }}
+    >
       <Stack.Screen name="Main">
         {() => <MainTabs user={user} />}
       </Stack.Screen>
-      <Stack.Screen name="ActiveRun" component={ActiveRunScreen} />
+      <Stack.Screen 
+        name="ActiveRun" 
+        component={ActiveRunScreen} 
+        options={{ gestureEnabled: false }} // Prevent accidental swipe back during run
+      />
       <Stack.Screen name="Achievements" component={AchievementsScreen} />
     </Stack.Navigator>
   );
@@ -108,23 +118,37 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
-    paddingTop: 8,
-    paddingBottom: 8,
-    height: 60,
+    height: Platform.OS === 'ios' ? 88 : 68,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === 'ios' ? 28 : 12,
+    // Shadow for elevation effect
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 20,
   },
   tabLabel: {
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: 11,
+    fontWeight: '700',
+    marginTop: 4,
   },
   tabIconContainer: {
+    width: 44,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 16,
+  },
+  tabIconContainerFocused: {
+    backgroundColor: '#EFF6FF', // Light blue highlight
   },
   tabIcon: {
-    fontSize: 22,
-    opacity: 0.6,
+    fontSize: 20,
+    opacity: 0.7,
   },
   tabIconFocused: {
     opacity: 1,
+    transform: [{ scale: 1.1 }],
   },
 });

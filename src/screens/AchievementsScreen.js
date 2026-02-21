@@ -1,129 +1,124 @@
 // src/screens/AchievementsScreen.js
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, StatusBar } from 'react-native';
 import { COLORS, ACHIEVEMENTS } from '../utils/constants';
-import { getRuns, getAchievements, saveAchievements } from '../utils/storage';
+import { getRuns, saveAchievements } from '../utils/storage';
+import { useFocusEffect } from '@react-navigation/native';
 
 const AchievementsScreen = () => {
   const [achievements, setAchievements] = useState([]);
   const [earnedCount, setEarnedCount] = useState(0);
 
-  useEffect(() => {
-    calculateAchievements();
-  }, []);
-
   const calculateAchievements = async () => {
     const runs = await getRuns() || [];
-    const earned = [];
+    const earnedIds = [];
     
-    const totalDistance = runs.reduce((sum, r) => sum + (r.distance || 0), 0) / 1000; // km
+    const totalDistance = runs.reduce((sum, r) => sum + (r.distance || 0), 0); // km
     const totalRuns = runs.length;
     
-    // Check each achievement
-    if (totalRuns >= 1) {
-      earned.push({ ...ACHIEVEMENTS[0], earned: true }); // First Run
-    }
-    if (totalDistance >= 5) {
-      earned.push({ ...ACHIEVEMENTS[1], earned: true }); // 5K
-    }
-    if (totalDistance >= 10) {
-      earned.push({ ...ACHIEVEMENTS[2], earned: true }); // 10K
-    }
-    if (totalDistance >= 42) {
-      earned.push({ ...ACHIEVEMENTS[3], earned: true }); // Marathon
-    }
+    // Check milestones
+    if (totalRuns >= 1) earnedIds.push('first_run');
+    if (totalDistance >= 5) earnedIds.push('5k');
+    if (totalDistance >= 10) earnedIds.push('10k');
+    if (totalDistance >= 42) earnedIds.push('marathon');
     
-    // Check streaks
-    if (runs.length >= 3) {
-      earned.push({ ...ACHIEVEMENTS[4], earned: true }); // 3 Day Streak
-    }
-    if (runs.length >= 7) {
-      earned.push({ ...ACHIEVEMENTS[5], earned: true }); // 7 Day Streak
-    }
+    // Check streaks (simplified)
+    if (totalRuns >= 3) earnedIds.push('streak_3');
+    if (totalRuns >= 7) earnedIds.push('streak_7');
 
-    // Set achievement progress for unearned
     const allAchievements = ACHIEVEMENTS.map(ach => {
-      const existing = earned.find(e => e.id === ach.id);
-      if (existing) return existing;
+      const isEarned = earnedIds.includes(ach.id);
       
-      // Add progress info
       let progress = 0;
       let progressText = '';
       
       switch (ach.id) {
         case 'first_run':
-          progress = (totalRuns / 1) * 100;
+          progress = Math.min(100, (totalRuns / 1) * 100);
           progressText = `${totalRuns}/1 runs`;
           break;
         case '5k':
-          progress = (totalDistance / 5) * 100;
+          progress = Math.min(100, (totalDistance / 5) * 100);
           progressText = `${totalDistance.toFixed(1)}/5 km`;
           break;
         case '10k':
-          progress = (totalDistance / 10) * 100;
+          progress = Math.min(100, (totalDistance / 10) * 100);
           progressText = `${totalDistance.toFixed(1)}/10 km`;
           break;
         case 'marathon':
-          progress = (totalDistance / 42) * 100;
+          progress = Math.min(100, (totalDistance / 42) * 100);
           progressText = `${totalDistance.toFixed(1)}/42 km`;
           break;
         default:
           progress = 0;
-          progressText = 'Coming soon';
+          progressText = isEarned ? 'Completed' : 'Locked';
       }
       
-      return { ...ach, earned: false, progress, progressText };
+      return { ...ach, earned: isEarned, progress, progressText };
     });
 
     setAchievements(allAchievements);
-    setEarnedCount(earned.length);
+    setEarnedCount(earnedIds.length);
     await saveAchievements(allAchievements);
   };
 
-  const categories = [
-    { title: '🏃 Milestones', ids: ['first_run', '5k', '10k', 'marathon'] },
-    { title: '🔥 Streaks', ids: ['streak_3', 'streak_7'] },
-    { title: '⛰️ Challenges', ids: ['early_bird', 'hill_master'] },
-  ];
+  useFocusEffect(
+    useCallback(() => {
+      calculateAchievements();
+    }, [])
+  );
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView>
-        <Text style={styles.title}>Achievements</Text>
-        
-        <View style={styles.progressCard}>
-          <Text style={styles.progressText}>🔵 {earnedCount} / {ACHIEVEMENTS.length} Earned</Text>
-          <View style={styles.progressBar}>
-            <View style={[styles.progressFill, { width: `${(earnedCount / ACHIEVEMENTS.length) * 100}%` }]} />
+      <StatusBar barStyle="dark-content" />
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Achievements</Text>
+          <View style={styles.statsRow}>
+            <View style={styles.statBox}>
+              <Text style={styles.statValue}>{earnedCount}</Text>
+              <Text style={styles.statLabel}>UNLOCKED</Text>
+            </View>
+            <View style={styles.statBox}>
+              <Text style={styles.statValue}>{ACHIEVEMENTS.length - earnedCount}</Text>
+              <Text style={styles.statLabel}>REMAINING</Text>
+            </View>
           </View>
         </View>
 
-        {categories.map((category) => (
-          <View key={category.title} style={styles.category}>
-            <Text style={styles.categoryTitle}>{category.title}</Text>
-            <View style={styles.badgeGrid}>
-              {category.ids.map((id) => {
-                const achievement = achievements.find(a => a.id === id) || ACHIEVEMENTS.find(a => a.id === id);
-                return (
-                  <View
-                    key={id}
-                    style={[styles.badge, !achievement?.earned && styles.badgeLocked]}
-                  >
-                    <Text style={styles.badgeIcon}>
-                      {achievement?.earned ? achievement.icon : '🔒'}
-                    </Text>
-                    <Text style={[styles.badgeName, !achievement?.earned && styles.badgeNameLocked]}>
-                      {achievement?.name || 'Unknown'}
-                    </Text>
-                    {!achievement?.earned && achievement?.progress > 0 && (
-                      <Text style={styles.badgeProgress}>{achievement.progressText}</Text>
-                    )}
+        <View style={styles.section}>
+          <View style={styles.grid}>
+            {achievements.map((ach) => (
+              <View key={ach.id} style={[styles.badgeCard, !ach.earned && styles.badgeLocked]}>
+                <View style={[styles.iconBox, ach.earned && styles.iconBoxEarned]}>
+                  <Text style={[styles.icon, !ach.earned && styles.iconLocked]}>
+                    {ach.earned ? ach.icon : '🔒'}
+                  </Text>
+                </View>
+                <Text style={styles.badgeName}>{ach.name}</Text>
+                <Text style={styles.badgeDesc} numberOfLines={2}>{ach.description}</Text>
+                
+                {!ach.earned && (
+                  <View style={styles.progressContainer}>
+                    <View style={styles.progressHeader}>
+                      <Text style={styles.progressText}>{ach.progressText}</Text>
+                      <Text style={styles.progressPercent}>{Math.floor(ach.progress)}%</Text>
+                    </View>
+                    <View style={styles.progressBar}>
+                      <View style={[styles.progressFill, { width: `${ach.progress}%` }]} />
+                    </View>
                   </View>
-                );
-              })}
-            </View>
+                )}
+                
+                {ach.earned && (
+                  <View style={styles.earnedBadge}>
+                    <Text style={styles.earnedText}>UNLOCKED</Text>
+                  </View>
+                )}
+              </View>
+            ))}
           </View>
-        ))}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -133,79 +128,145 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    padding: 20,
+  },
+  scrollContent: {
+    paddingBottom: 40,
+  },
+  header: {
+    padding: 24,
+    backgroundColor: COLORS.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 32,
+    fontWeight: '800',
     color: COLORS.textPrimary,
     marginBottom: 20,
+    letterSpacing: -1,
   },
-  progressCard: {
-    backgroundColor: COLORS.surface,
+  statsRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  statBox: {
+    flex: 1,
+    backgroundColor: COLORS.surfaceAlt,
     borderRadius: 16,
+    padding: 16,
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: COLORS.primary,
+  },
+  statLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.textMuted,
+    marginTop: 2,
+    letterSpacing: 0.5,
+  },
+  section: {
     padding: 20,
-    marginBottom: 24,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  badgeCard: {
+    width: '48%',
+    backgroundColor: COLORS.surface,
+    borderRadius: 24,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  badgeLocked: {
+    backgroundColor: COLORS.background,
+    borderColor: 'transparent',
+  },
+  iconBox: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    backgroundColor: COLORS.surfaceAlt,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  iconBoxEarned: {
+    backgroundColor: '#EFF6FF',
+  },
+  icon: {
+    fontSize: 32,
+  },
+  iconLocked: {
+    fontSize: 24,
+    opacity: 0.3,
+  },
+  badgeName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  badgeDesc: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 16,
+    marginBottom: 12,
+    height: 32,
+  },
+  progressContainer: {
+    width: '100%',
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 6,
   },
   progressText: {
-    fontSize: 16,
+    fontSize: 10,
     fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginBottom: 12,
-    textAlign: 'center',
+    color: COLORS.textMuted,
+  },
+  progressPercent: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
   },
   progressBar: {
-    height: 8,
+    height: 6,
     backgroundColor: COLORS.border,
-    borderRadius: 4,
+    borderRadius: 3,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
     backgroundColor: COLORS.primary,
-    borderRadius: 4,
   },
-  category: {
-    marginBottom: 24,
-  },
-  categoryTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.textPrimary,
-    marginBottom: 12,
-  },
-  badgeGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  badge: {
-    width: '47%',
-    backgroundColor: COLORS.surface,
+  earnedBadge: {
+    backgroundColor: '#F0FDF4',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
   },
-  badgeLocked: {
-    opacity: 0.6,
-  },
-  badgeIcon: {
-    fontSize: 36,
-    marginBottom: 8,
-  },
-  badgeName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    textAlign: 'center',
-  },
-  badgeNameLocked: {
-    color: COLORS.textSecondary,
-  },
-  badgeProgress: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    marginTop: 4,
+  earnedText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: COLORS.success,
+    letterSpacing: 0.5,
   },
 });
 

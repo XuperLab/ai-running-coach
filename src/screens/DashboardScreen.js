@@ -1,85 +1,146 @@
 // src/screens/DashboardScreen.js
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
-import { COLORS, ACHIEVEMENTS } from '../utils/constants';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, RefreshControl, StatusBar } from 'react-native';
+import { COLORS } from '../utils/constants';
 import { getRuns, getAchievements } from '../utils/storage';
+import { useFocusEffect } from '@react-navigation/native';
 
 const DashboardScreen = ({ navigation, user }) => {
-  const [weeklyStats, setWeeklyStats] = useState({ distance: 0, time: 0, runs: 0 });
+  const [weeklyStats, setWeeklyStats] = useState({ distance: '0.0', time: 0, runs: 0 });
   const [recentAchievements, setRecentAchievements] = useState([]);
-
-  useEffect(() => {
-    loadData();
-  }, []);
+  const [refreshing, setRefreshing] = useState(false);
 
   const loadData = async () => {
-    const runs = await getRuns() || [];
-    const achievements = await getAchievements() || [];
-    
-    // Calculate weekly stats
-    const now = new Date();
-    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const thisWeekRuns = runs.filter(r => new Date(r.date) >= weekAgo);
-    
-    const distance = thisWeekRuns.reduce((sum, r) => sum + (r.distance || 0), 0);
-    const time = thisWeekRuns.reduce((sum, r) => sum + (r.duration || 0), 0);
-    
-    setWeeklyStats({
-      distance: (distance / 1000).toFixed(1), // km
-      time: Math.floor(time / 60), // minutes
-      runs: thisWeekRuns.length,
-    });
+    try {
+      const runs = await getRuns() || [];
+      const achievements = await getAchievements() || [];
+      
+      // Calculate weekly stats
+      const now = new Date();
+      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const thisWeekRuns = runs.filter(r => new Date(r.date) >= weekAgo);
+      
+      const distance = thisWeekRuns.reduce((sum, r) => sum + (r.distance || 0), 0);
+      const time = thisWeekRuns.reduce((sum, r) => sum + (r.duration || 0), 0);
+      
+      setWeeklyStats({
+        distance: (distance / 1000).toFixed(1), // km
+        time: Math.floor(time / 60), // minutes
+        runs: thisWeekRuns.length,
+      });
 
-    // Get recent achievements
-    const recent = achievements.slice(0, 2);
-    setRecentAchievements(recent);
+      // Get recent achievements (last 3)
+      setRecentAchievements(achievements.slice(-3).reverse());
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [])
+  );
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadData();
+    setRefreshing(false);
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView>
+      <StatusBar barStyle="dark-content" />
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />
+        }
+      >
         <View style={styles.header}>
-          <Text style={styles.greeting}>Hi, {user?.name || 'Runner'}! 👋</Text>
+          <View>
+            <Text style={styles.greetingLabel}>Welcome back,</Text>
+            <Text style={styles.greetingName}>{user?.name || 'Runner'} 👋</Text>
+          </View>
+          <TouchableOpacity 
+            style={styles.profileButton}
+            onPress={() => navigation.navigate('Profile')}
+          >
+            <Text style={styles.profileEmoji}>👤</Text>
+          </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.startCard} onPress={() => navigation.navigate('Generate')}>
-          <Text style={styles.startTitle}>Next Run</Text>
-          <Text style={styles.startSubtitle}>Ready to go?</Text>
-          <View style={styles.startButton}>
-            <Text style={styles.startButtonText}>START RUN</Text>
+        <TouchableOpacity 
+          style={styles.heroCard} 
+          onPress={() => navigation.navigate('Generate')}
+          activeOpacity={0.9}
+        >
+          <View style={styles.heroContent}>
+            <Text style={styles.heroTag}>NEXT SESSION</Text>
+            <Text style={styles.heroTitle}>Ready for your run?</Text>
+            <Text style={styles.heroSubtitle}>Your AI coach has a personalized plan waiting for you.</Text>
+            <View style={styles.heroButton}>
+              <Text style={styles.heroButtonText}>Start Training</Text>
+              <Text style={styles.heroButtonIcon}>→</Text>
+            </View>
+          </View>
+          <View style={styles.heroIconContainer}>
+            <Text style={styles.heroLargeIcon}>⚡</Text>
           </View>
         </TouchableOpacity>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>This Week</Text>
-          <View style={styles.statsRow}>
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>{weeklyStats.distance}</Text>
-              <Text style={styles.statLabel}>km</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Weekly Activity</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('History')}>
+              <Text style={styles.sectionAction}>View All</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.statsGrid}>
+            <View style={[styles.statBox, { backgroundColor: '#EFF6FF' }]}>
+              <Text style={[styles.statValue, { color: COLORS.primary }]}>{weeklyStats.distance}</Text>
+              <Text style={styles.statLabel}>Total KM</Text>
             </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>{weeklyStats.time}</Text>
-              <Text style={styles.statLabel}>min</Text>
+            <View style={[styles.statBox, { backgroundColor: '#F0FDF4' }]}>
+              <Text style={[styles.statValue, { color: COLORS.success }]}>{weeklyStats.time}</Text>
+              <Text style={styles.statLabel}>Minutes</Text>
             </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>{weeklyStats.runs}</Text>
-              <Text style={styles.statLabel}>runs</Text>
+            <View style={[styles.statBox, { backgroundColor: '#FFF7ED' }]}>
+              <Text style={[styles.statValue, { color: COLORS.secondary }]}>{weeklyStats.runs}</Text>
+              <Text style={styles.statLabel}>Sessions</Text>
             </View>
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recent Achievements</Text>
-          {recentAchievements.length > 0 ? (
-            recentAchievements.map((ach, index) => (
-              <View key={index} style={styles.achievementCard}>
-                <Text style={styles.achievementIcon}>{ach.icon}</Text>
-                <Text style={styles.achievementName}>{ach.name}</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Recent Achievements</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Achievements')}>
+              <Text style={styles.sectionAction}>See All</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.achievementsContainer}>
+            {recentAchievements.length > 0 ? (
+              recentAchievements.map((ach, index) => (
+                <View key={index} style={styles.achievementItem}>
+                  <View style={styles.achievementIconBox}>
+                    <Text style={styles.achievementIcon}>{ach.icon}</Text>
+                  </View>
+                  <View style={styles.achievementInfo}>
+                    <Text style={styles.achievementName}>{ach.name}</Text>
+                    <Text style={styles.achievementDate}>Recently unlocked</Text>
+                  </View>
+                </View>
+              ))
+            ) : (
+              <View style={styles.emptyCard}>
+                <Text style={styles.emptyEmoji}>🏅</Text>
+                <Text style={styles.emptyText}>Your first trophy is waiting. Start your journey today!</Text>
               </View>
-            ))
-          ) : (
-            <Text style={styles.emptyText}>No achievements yet. Start running!</Text>
-          )}
+            )}
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -91,102 +152,200 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  header: {
-    padding: 20,
+  scrollContent: {
+    paddingBottom: 32,
   },
-  greeting: {
+  header: {
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 24,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  greetingLabel: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  greetingName: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '800',
     color: COLORS.textPrimary,
   },
-  startCard: {
-    margin: 20,
-    marginTop: 0,
-    backgroundColor: COLORS.primary,
-    borderRadius: 16,
-    padding: 24,
-  },
-  startTitle: {
-    fontSize: 20,
-    color: COLORS.surface,
-    fontWeight: 'bold',
-  },
-  startSubtitle: {
-    fontSize: 14,
-    color: COLORS.surface,
-    opacity: 0.8,
-    marginTop: 4,
-  },
-  startButton: {
-    backgroundColor: COLORS.secondary,
-    borderRadius: 8,
-    padding: 12,
+  profileButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.surface,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  startButtonText: {
-    color: COLORS.surface,
-    fontWeight: 'bold',
-    fontSize: 16,
+  profileEmoji: {
+    fontSize: 20,
+  },
+  heroCard: {
+    marginHorizontal: 24,
+    backgroundColor: COLORS.primary,
+    borderRadius: 24,
+    padding: 24,
+    flexDirection: 'row',
+    overflow: 'hidden',
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 15,
+    elevation: 8,
+  },
+  heroContent: {
+    flex: 1,
+    zIndex: 1,
+  },
+  heroTag: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: 'rgba(255, 255, 255, 0.7)',
+    letterSpacing: 1.5,
+    marginBottom: 8,
+  },
+  heroTitle: {
+    fontSize: 22,
+    color: '#FFFFFF',
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  heroSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  heroButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  heroButtonText: {
+    color: COLORS.primary,
+    fontWeight: '700',
+    fontSize: 14,
+    marginRight: 6,
+  },
+  heroButtonIcon: {
+    color: COLORS.primary,
+    fontWeight: '700',
+  },
+  heroIconContainer: {
+    position: 'absolute',
+    right: -20,
+    bottom: -20,
+    opacity: 0.15,
+  },
+  heroLargeIcon: {
+    fontSize: 120,
   },
   section: {
-    padding: 20,
-    paddingTop: 0,
+    paddingHorizontal: 24,
+    marginTop: 32,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: COLORS.textPrimary,
-    marginBottom: 12,
   },
-  statsRow: {
+  sectionAction: {
+    fontSize: 14,
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
+  statsGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  statCard: {
-    flex: 1,
-    backgroundColor: COLORS.surface,
-    borderRadius: 12,
-    padding: 16,
-    marginHorizontal: 4,
+  statBox: {
+    width: '31%',
+    borderRadius: 20,
+    paddingVertical: 20,
+    paddingHorizontal: 12,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
   },
   statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: COLORS.primary,
+    fontSize: 22,
+    fontWeight: '800',
+    marginBottom: 4,
   },
   statLabel: {
-    fontSize: 14,
+    fontSize: 12,
     color: COLORS.textSecondary,
-    marginTop: 4,
+    fontWeight: '600',
   },
-  achievementCard: {
+  achievementsContainer: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 24,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  achievementItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 8,
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.surfaceAlt,
+  },
+  achievementIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: COLORS.surfaceAlt,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
   },
   achievementIcon: {
     fontSize: 24,
-    marginRight: 12,
+  },
+  achievementInfo: {
+    flex: 1,
   },
   achievementName: {
-    fontSize: 16,
+    fontSize: 15,
     color: COLORS.textPrimary,
-    fontWeight: '500',
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  achievementDate: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+  },
+  emptyCard: {
+    padding: 24,
+    alignItems: 'center',
+  },
+  emptyEmoji: {
+    fontSize: 40,
+    marginBottom: 12,
+    opacity: 0.5,
   },
   emptyText: {
     color: COLORS.textSecondary,
     textAlign: 'center',
-    padding: 20,
+    fontSize: 14,
+    lineHeight: 20,
   },
 });
 

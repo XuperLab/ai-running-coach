@@ -1,15 +1,28 @@
 // src/utils/constants.js
 export const COLORS = {
-  primary: '#1E40AF',
-  secondary: '#F97316',
-  background: '#F8FAFC',
+  // Brand Colors
+  primary: '#2563EB', // Modern blue
+  secondary: '#F59E0B', // Amber
+  accent: '#7C3AED', // Indigo/Violet accent
+  
+  // Background & Surfaces
+  background: '#F8FAFC', // Very light slate
   surface: '#FFFFFF',
-  textPrimary: '#1E293B',
-  textSecondary: '#64748B',
-  success: '#10B981',
-  warning: '#F59E0B',
-  error: '#EF4444',
+  surfaceAlt: '#F1F5F9', // Light slate
+  
+  // Text
+  textPrimary: '#0F172A', // Darkest slate
+  textSecondary: '#475569', // Medium slate
+  textMuted: '#94A3B8', // Light slate
+  
+  // Semantic
+  success: '#10B981', // Emerald
+  warning: '#F59E0B', // Amber
+  error: '#EF4444', // Rose
+  
+  // Borders
   border: '#E2E8F0',
+  borderDark: '#CBD5E1',
 };
 
 export const STORAGE_KEYS = {
