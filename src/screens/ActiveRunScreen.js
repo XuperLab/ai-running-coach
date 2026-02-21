@@ -84,7 +84,31 @@ const ActiveRunScreen = ({ navigation, route }) => {
       raceGoal,
     };
     await saveRuns([newRun, ...runs]);
-    navigation.navigate('Dashboard');
+    // Navigate back to the Dashboard inside the Main tab navigator
+    navigation.navigate('Main', { screen: 'Dashboard' });
+  };
+
+  const handleBack = () => {
+    if (elapsedTime > 10) { // If significant progress, ask before leaving
+      Alert.alert(
+        'Exit Workout?',
+        'Your progress for this session will not be saved. Are you sure you want to leave?',
+        [
+          { text: 'Stay', style: 'cancel' },
+          { 
+            text: 'Exit', 
+            style: 'destructive', 
+            onPress: () => {
+              stopTimer();
+              navigation.navigate('Main', { screen: 'Dashboard' });
+            } 
+          },
+        ]
+      );
+    } else {
+      stopTimer();
+      navigation.navigate('Main', { screen: 'Dashboard' });
+    }
   };
 
   const getZoneColor = (zone) => {
@@ -97,6 +121,9 @@ const ActiveRunScreen = ({ navigation, route }) => {
       <StatusBar barStyle="light-content" />
       
       <View style={styles.topBar}>
+        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+          <Text style={styles.backIcon}>←</Text>
+        </TouchableOpacity>
         <View style={styles.sessionBadge}>
           <Text style={styles.sessionBadgeText}>{workoutType || 'Free Run'}</Text>
         </View>
@@ -184,6 +211,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 24,
     paddingVertical: 16,
+  },
+  backButton: {
+    padding: 8,
+    marginLeft: -8,
+  },
+  backIcon: {
+    color: '#FFFFFF',
+    fontSize: 24,
+    fontWeight: '600',
   },
   sessionBadge: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
