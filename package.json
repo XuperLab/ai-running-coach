@@ -2,7 +2,7 @@
   "name": "ai-running-coach-temp",
   "version": "1.0.0",
   "main": "index.js",
-  "homepage": "https://wilsonchengassistant.github.io/ai-running-coach",
+  "homepage": ".",
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
