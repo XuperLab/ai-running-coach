@@ -29,6 +29,11 @@ jobs:
       - name: Build Web 🏗️
         run: npx expo export -p web
 
+      - name: Fix absolute paths 🛠️
+        run: |
+          sed -i 's/src="\//src="/g' dist/index.html
+          sed -i 's/href="\//href="/g' dist/index.html
+
       - name: Add .nojekyll 📄
         run: touch dist/.nojekyll
 
