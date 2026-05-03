@@ -7,7 +7,7 @@ import {
 import * as Location from 'expo-location';
 import { COLORS, GPS_CONFIG } from '../utils/constants';
 import { saveRuns, getRuns } from '../utils/storage';
-import { MapView as MapComponent, Polyline as PolylineComponent } from '../utils/mapHelper';
+import { getMapView, getPolyline } from '../utils/mapHelper';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -256,27 +256,24 @@ const ActiveRunScreen = ({ navigation, route }) => {
 
       {/* Map Background */}
       {region ? (
-        MapComponent ? (
-          <MapComponent
-            style={StyleSheet.absoluteFillObject}
-            initialRegion={region}
-            showsUserLocation={true}
-            followsUserLocation={true}
-            showsMyLocationButton={false}
-            toolbarEnabled={false}
-            mapType="standard"
-            customMapStyle={darkMapStyle}
-          >
-            {routeCoords.length > 1 && (
-              <PolylineComponent
-                coordinates={routeCoords}
-                strokeColor="#2563EB"
-                strokeWidth={5}
-                lineJoin="round"
-                lineCap="round"
-              />
-            )}
-          </MapComponent>
+        getMapView() ? (
+          React.createElement(getMapView(), {
+            style: StyleSheet.absoluteFillObject,
+            initialRegion: region,
+            showsUserLocation: true,
+            followsUserLocation: true,
+            showsMyLocationButton: false,
+            toolbarEnabled: false,
+            mapType: 'standard',
+          },
+            routeCoords.length > 1 && React.createElement(getPolyline(), {
+              coordinates: routeCoords,
+              strokeColor: '#2563EB',
+              strokeWidth: 5,
+              lineJoin: 'round',
+              lineCap: 'round',
+            })
+          )
         ) : (
           <View style={styles.loadingMap}>
             <Text style={styles.loadingText}>📍 GPS Locked</Text>

@@ -1,21 +1,27 @@
 // src/utils/mapHelper.js
 // Cross-platform MapView wrapper
-// On native (iOS/Android), uses react-native-maps
-// On web, renders a placeholder
+// Lazy-loads react-native-maps only on native platforms to avoid web errors
 
 import { Platform } from 'react-native';
 
-let MapView, Polyline, Marker;
+let _MapView, _Polyline, _Marker;
+let _loaded = false;
 
-if (Platform.OS !== 'web') {
-  try {
-    const Maps = require('react-native-maps');
-    MapView = Maps.default;
-    Polyline = Maps.Polyline;
-    Marker = Maps.Marker;
-  } catch (e) {
-    // Fallback if react-native-maps isn't installed
+const loadMaps = () => {
+  if (_loaded) return;
+  _loaded = true;
+  if (Platform.OS !== 'web') {
+    try {
+      const Maps = require('react-native-maps');
+      _MapView = Maps.default;
+      _Polyline = Maps.Polyline;
+      _Marker = Maps.Marker;
+    } catch (e) {
+      console.warn('react-native-maps not available:', e.message);
+    }
   }
-}
+};
 
-export { MapView, Polyline, Marker };
+export const getMapView = () => { loadMaps(); return _MapView; };
+export const getPolyline = () => { loadMaps(); return _Polyline; };
+export const getMarker = () => { loadMaps(); return _Marker; };

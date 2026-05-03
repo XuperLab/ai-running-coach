@@ -2,7 +2,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, StatusBar, Platform, Dimensions } from 'react-native';
 import { COLORS } from '../utils/constants';
-import { MapView, Polyline, Marker } from '../utils/mapHelper';
+import { getMapView, getPolyline, getMarker } from '../utils/mapHelper';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -63,6 +63,9 @@ const RunDetailScreen = ({ navigation, route }) => {
         </View>
       );
     }
+    const MapView = getMapView();
+    const Polyline = getPolyline();
+    const Marker = getMarker();
     if (!MapView) {
       return (
         <View style={styles.noRouteContainer}>
@@ -80,23 +83,29 @@ const RunDetailScreen = ({ navigation, route }) => {
         zoomEnabled={true}
         mapType="standard"
       >
-        <Polyline
-          coordinates={run.route}
-          strokeColor={COLORS.primary}
-          strokeWidth={4}
-          lineJoin="round"
-          lineCap="round"
-        />
-        <Marker
-          coordinate={run.route[0]}
-          title="Start"
-          pinColor={COLORS.success}
-        />
-        <Marker
-          coordinate={run.route[run.route.length - 1]}
-          title="Finish"
-          pinColor="#EF4444"
-        />
+        {Polyline && (
+          <Polyline
+            coordinates={run.route}
+            strokeColor={COLORS.primary}
+            strokeWidth={4}
+            lineJoin="round"
+            lineCap="round"
+          />
+        )}
+        {Marker && (
+          <>
+            <Marker
+              coordinate={run.route[0]}
+              title="Start"
+              pinColor={COLORS.success}
+            />
+            <Marker
+              coordinate={run.route[run.route.length - 1]}
+              title="Finish"
+              pinColor="#EF4444"
+            />
+          </>
+        )}
       </MapView>
     );
   };
@@ -146,7 +155,7 @@ const RunDetailScreen = ({ navigation, route }) => {
           </View>
         </View>
 
-        {run.gpsTracked && hasRoute && MapView && (
+        {run.gpsTracked && hasRoute && getMapView() && (
           <View style={styles.gpsBadge}>
             <View style={styles.gpsDot} />
             <Text style={styles.gpsBadgeText}>GPS Tracked · {run.route.length} points</Text>
