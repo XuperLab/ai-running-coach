@@ -31,6 +31,15 @@ jobs:
       - name: Build web
         run: npx expo export -p web --no-minify
 
+      - name: Fix paths for GitHub Pages subdirectory
+        run: |
+          cd dist
+          # Fix absolute paths in index.html to be relative to /ai-running-coach/
+          sed -i 's|src="/_expo/|src="/ai-running-coach/_expo/|g' index.html
+          sed -i 's|href="/favicon.ico"|href="/ai-running-coach/favicon.ico"|g' index.html
+          # Fix any other absolute asset references
+          sed -i 's|="/assets/|="/ai-running-coach/assets/|g' index.html
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
