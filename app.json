@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "ai-running-coach-temp",
-    "slug": "ai-running-coach-temp",
+    "name": "AI Running Coach",
+    "slug": "ai-running-coach",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,17 +13,35 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "AI Running Coach needs your location to track your running route and calculate distance.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "AI Running Coach needs your location to track your running route even when the app is in the background."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "FOREGROUND_SERVICE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow AI Running Coach to use your location to track your running route.",
+          "locationWhenInUsePermission": "Allow AI Running Coach to use your location to track your running route."
+        }
+      ]
+    ]
   }
 }

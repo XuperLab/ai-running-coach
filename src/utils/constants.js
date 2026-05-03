@@ -66,6 +66,13 @@ export const COACH_STYLES = [
 
 export const RUNNING_LEVELS = ['Beginner', 'Intermediate', 'Advanced'];
 
+// GPS Tracking Settings
+export const GPS_CONFIG = {
+  TRACK_INTERVAL_MS: 3000,      // Record a GPS point every 3 seconds
+  DISTANCE_FILTER_M: 5,         // Minimum distance change to record a point (meters)
+  ACCURACY_THRESHOLD_M: 50,     // Ignore GPS readings with accuracy worse than 50m
+};
+
 export const ACHIEVEMENTS = [
   { id: 'first_run', name: 'First Run', description: 'Complete your first run', icon: '🏃' },
   { id: '5k', name: '5K Runner', description: 'Run a total of 5km', icon: '🥉' },

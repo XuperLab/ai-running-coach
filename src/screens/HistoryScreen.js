@@ -5,7 +5,7 @@ import { COLORS } from '../utils/constants';
 import { getRuns } from '../utils/storage';
 import { useFocusEffect } from '@react-navigation/native';
 
-const HistoryScreen = () => {
+const HistoryScreen = ({ navigation }) => {
   const [runs, setRuns] = useState([]);
   const [viewMode, setViewMode] = useState('Week');
   const [summary, setSummary] = useState({ totalDistance: '0.0', totalTime: 0, avgPace: '0.0', runCount: 0 });
@@ -117,7 +117,12 @@ const HistoryScreen = () => {
           <Text style={styles.sectionTitle}>Recent Sessions</Text>
           {runs.length > 0 ? (
             runs.slice().reverse().map((run) => (
-              <TouchableOpacity key={run.id} style={styles.runCard} activeOpacity={0.7}>
+              <TouchableOpacity 
+                key={run.id} 
+                style={styles.runCard} 
+                activeOpacity={0.7}
+                onPress={() => navigation.navigate('RunDetail', { run })}
+              >
                 <View style={styles.runIconBox}>
                   <Text style={styles.runEmoji}>🏃</Text>
                 </View>

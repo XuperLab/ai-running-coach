@@ -15,6 +15,7 @@ import ActiveRunScreen from './src/screens/ActiveRunScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import HistoryScreen from './src/screens/HistoryScreen';
 import AchievementsScreen from './src/screens/AchievementsScreen';
+import RunDetailScreen from './src/screens/RunDetailScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -98,6 +99,7 @@ const AppNavigator = () => {
         options={{ gestureEnabled: false }} // Prevent accidental swipe back during run
       />
       <Stack.Screen name="Achievements" component={AchievementsScreen} />
+      <Stack.Screen name="RunDetail" component={RunDetailScreen} />
     </Stack.Navigator>
   );
 };
