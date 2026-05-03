@@ -2,43 +2,47 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
     steps:
-      - name: Checkout 🛎️
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js ⚙️
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: 20
+          cache: npm
 
-      - name: Install dependencies 📦
-        run: |
-          npm install
-          npx expo install react-dom react-native-web
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Build Web 🏗️
-        run: npx expo export -p web
+      - name: Build web
+        run: npx expo export -p web --no-minify
 
-      - name: Fix absolute paths 🛠️
-        run: |
-          sed -i 's/src="\//src="/g' dist/index.html
-          sed -i 's/href="\//href="/g' dist/index.html
-
-      - name: Add .nojekyll 📄
-        run: touch dist/.nojekyll
-
-      - name: Deploy 🚀
-        uses: JamesIves/github-pages-deploy-action@v4
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          folder: dist
-          branch: gh-pages
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
