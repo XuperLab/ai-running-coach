@@ -24,8 +24,8 @@ const LoginScreen = ({ onLogin }) => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
         <View style={styles.content}>
@@ -69,15 +69,15 @@ const LoginScreen = ({ onLogin }) => {
                 selectionColor={COLORS.primary}
               />
             </View>
-            
+
             {error ? (
               <View style={styles.errorContainer}>
                 <Text style={styles.errorText}>{error}</Text>
               </View>
             ) : null}
 
-            <TouchableOpacity 
-              style={styles.buttonPrimary} 
+            <TouchableOpacity
+              style={styles.buttonPrimary}
               onPress={handleLogin}
               activeOpacity={0.8}
             >

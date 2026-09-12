@@ -14,6 +14,7 @@ const ProfileScreen = () => {
   const [units, setUnits] = useState('Metric');
   const [coachVoice, setCoachVoice] = useState('Motivational');
   const [saved, setSaved] = useState(false);
+  const [hasProfile, setHasProfile] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -22,6 +23,7 @@ const ProfileScreen = () => {
   const loadProfile = async () => {
     const profile = await getProfile();
     if (profile) {
+      setHasProfile(true);
       setName(profile.name || '');
       setGender(profile.gender || '');
       setDob(profile.dob || '');
@@ -45,6 +47,7 @@ const ProfileScreen = () => {
       coachVoice,
     };
     await saveProfile(profile);
+    setHasProfile(true);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -64,7 +67,9 @@ const ProfileScreen = () => {
             </View>
             <View style={styles.profileMeta}>
               <Text style={styles.profileName}>{name || 'Runner'}</Text>
-              <Text style={styles.profileLevel}>{level} Runner</Text>
+              <Text style={styles.profileLevel}>
+                {(name || gender || weight) ? `${level} Runner` : 'Tap Get Started to set up'}
+              </Text>
             </View>
           </View>
         </View>
@@ -160,14 +165,15 @@ const ProfileScreen = () => {
         </View>
 
         <View style={styles.footer}>
-          <TouchableOpacity 
-            style={[styles.saveButton, saved && styles.saveButtonSuccess]} 
+          <TouchableOpacity
+            style={[styles.saveButton, saved && styles.saveButtonSuccess]}
             onPress={handleSave}
             activeOpacity={0.8}
           >
-            <Text style={styles.saveButtonText}>{saved ? 'Profile Saved' : 'Save Changes'}</Text>
-          </TouchableOpacity>
-          
+            <Text style={styles.saveButtonText}>
+              {saved ? 'Profile Saved' : hasProfile ? 'Save Changes' : 'Get Started'}
+            </Text>          </TouchableOpacity>
+
           <TouchableOpacity style={styles.logoutButton}>
             <Text style={styles.logoutText}>Log Out</Text>
           </TouchableOpacity>

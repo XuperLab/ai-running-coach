@@ -33,7 +33,7 @@
     },
     "web": {
       "favicon": "./assets/favicon.png",
-      "basePath": "/ai-running-coach"
+      "basePath": "/"
     },
     "plugins": [
       [
@@ -42,7 +42,8 @@
           "locationAlwaysAndWhenInUsePermission": "Allow AI Running Coach to use your location to track your running route.",
           "locationWhenInUsePermission": "Allow AI Running Coach to use your location to track your running route."
         }
-      ]
+      ],
+      "expo-status-bar"
     ]
   }
 }

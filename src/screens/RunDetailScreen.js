@@ -150,8 +150,10 @@ const RunDetailScreen = ({ navigation, route }) => {
           </View>
           <View style={styles.statBox}>
             <Text style={styles.statLabel}>HR</Text>
-            <Text style={styles.statValue}>{run.heartRate || '--'}</Text>
-            <Text style={styles.statUnit}>bpm</Text>
+            <Text style={[styles.statValue, run.heartRate == null && styles.statUnknown]}>
+              {run.heartRate != null ? String(run.heartRate) : '—'}
+            </Text>
+            <Text style={styles.statUnit}>{run.heartRate != null ? 'bpm' : 'no source'}</Text>
           </View>
         </View>
 
@@ -261,6 +263,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.textPrimary,
     fontVariant: ['tabular-nums'],
+  },
+  statUnknown: {
+    color: COLORS.textMuted,
+    fontWeight: '600',
   },
   statUnit: {
     fontSize: 11,

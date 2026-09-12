@@ -12,26 +12,26 @@ const AchievementsScreen = () => {
   const calculateAchievements = async () => {
     const runs = await getRuns() || [];
     const earnedIds = [];
-    
+
     const totalDistance = runs.reduce((sum, r) => sum + (r.distance || 0), 0); // km
     const totalRuns = runs.length;
-    
+
     // Check milestones
     if (totalRuns >= 1) earnedIds.push('first_run');
     if (totalDistance >= 5) earnedIds.push('5k');
     if (totalDistance >= 10) earnedIds.push('10k');
     if (totalDistance >= 42) earnedIds.push('marathon');
-    
+
     // Check streaks (simplified)
     if (totalRuns >= 3) earnedIds.push('streak_3');
     if (totalRuns >= 7) earnedIds.push('streak_7');
 
     const allAchievements = ACHIEVEMENTS.map(ach => {
       const isEarned = earnedIds.includes(ach.id);
-      
+
       let progress = 0;
       let progressText = '';
-      
+
       switch (ach.id) {
         case 'first_run':
           progress = Math.min(100, (totalRuns / 1) * 100);
@@ -53,7 +53,7 @@ const AchievementsScreen = () => {
           progress = 0;
           progressText = isEarned ? 'Completed' : 'Locked';
       }
-      
+
       return { ...ach, earned: isEarned, progress, progressText };
     });
 
@@ -97,7 +97,7 @@ const AchievementsScreen = () => {
                 </View>
                 <Text style={styles.badgeName}>{ach.name}</Text>
                 <Text style={styles.badgeDesc} numberOfLines={2}>{ach.description}</Text>
-                
+
                 {!ach.earned && (
                   <View style={styles.progressContainer}>
                     <View style={styles.progressHeader}>
@@ -109,7 +109,7 @@ const AchievementsScreen = () => {
                     </View>
                   </View>
                 )}
-                
+
                 {ach.earned && (
                   <View style={styles.earnedBadge}>
                     <Text style={styles.earnedText}>UNLOCKED</Text>

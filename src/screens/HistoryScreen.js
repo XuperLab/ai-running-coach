@@ -1,14 +1,30 @@
 // src/screens/HistoryScreen.js
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, StatusBar, Dimensions } from 'react-native';
+import { BarChart, LineChart } from 'react-native-chart-kit';
 import { COLORS } from '../utils/constants';
 import { getRuns } from '../utils/storage';
 import { useFocusEffect } from '@react-navigation/native';
+
+const chartConfig = {
+  backgroundGradientFrom: '#FFFFFF',
+  backgroundGradientTo: '#FFFFFF',
+  color: (opacity = 1) => `rgba(37, 99, 235, ${opacity})`,
+  strokeWidth: 2,
+  decimalPlaces: 1,
+  labelColor: () => COLORS.textMuted,
+};
+
+const hrZoneColor = (z) => {
+  const colors = ['#94A3B8', '#10B981', '#F59E0B', '#F97316', '#EF4444'];
+  return colors[z - 1] || colors[0];
+};
 
 const HistoryScreen = ({ navigation }) => {
   const [runs, setRuns] = useState([]);
   const [viewMode, setViewMode] = useState('Week');
   const [summary, setSummary] = useState({ totalDistance: '0.0', totalTime: 0, avgPace: '0.0', runCount: 0 });
+  const [trends, setTrends] = useState({ labels: [], distance: [], pace: [], zones: [0, 0, 0, 0, 0] });
 
   const loadRuns = async () => {
     const allRuns = await getRuns() || [];
@@ -31,8 +47,8 @@ const HistoryScreen = ({ navigation }) => {
         startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     }
 
-    const filteredRuns = allRuns.filter(r => new Date(r.date) >= startDate);
-    
+    const filteredRuns = allRuns.filter((r) => new Date(r.date) >= startDate);
+
     const totalDistance = filteredRuns.reduce((sum, r) => sum + (r.distance || 0), 0); // km
     const totalTime = filteredRuns.reduce((sum, r) => sum + (r.duration || 0), 0); // seconds
     const avgPace = totalDistance > 0 ? (totalTime / 60) / totalDistance : 0;
@@ -43,6 +59,22 @@ const HistoryScreen = ({ navigation }) => {
       avgPace: avgPace.toFixed(1),
       runCount: filteredRuns.length,
     });
+
+    // Build chart data from the most recent runs (max 7).
+    // Only sessions with a real recorded distance belong in a distance chart —
+    // we never plot a placeholder for data we don't have.
+    const chartable = filteredRuns.filter((r) => (r.distance || 0) > 0);
+    const recent = chartable.slice(-7);
+    const labels = recent.map((_, i) => String(i + 1));
+    const distance = recent.map((r) => Number((r.distance || 0).toFixed(2)));
+    const pace = recent.map((r) => Number((r.pace || 0).toFixed(2)));
+    const zones = [0, 0, 0, 0, 0];
+    recent.forEach((r) => {
+      const hr = r.heartRate || 0;
+      const z = hr >= 175 ? 5 : hr >= 160 ? 4 : hr >= 145 ? 3 : hr >= 130 ? 2 : hr >= 100 ? 1 : 0;
+      if (z > 0) zones[z - 1] += 1;
+    });
+    setTrends({ labels, distance, pace, zones });
   };
 
   useFocusEffect(
@@ -67,6 +99,9 @@ const HistoryScreen = ({ navigation }) => {
     if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
+
+  const chartWidth = Dimensions.get('window').width - 40;
+  const hasTrends = trends.labels.length > 0;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -112,14 +147,60 @@ const HistoryScreen = ({ navigation }) => {
           </View>
         </View>
 
+        {/* Trends / Charts */}
+        {hasTrends ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Trends</Text>
+
+            <View style={styles.chartCard}>
+              <Text style={styles.chartTitle}>Distance per session (km)</Text>
+              <BarChart
+                data={{ labels: trends.labels, datasets: [{ data: trends.distance }] }}
+                width={chartWidth}
+                height={170}
+                chartConfig={chartConfig}
+                style={styles.chart}
+                fromZero
+                showValuesOnTopOfBars
+              />
+            </View>
+
+            <View style={styles.chartCard}>
+              <Text style={styles.chartTitle}>Pace trend (min/km)</Text>
+              <LineChart
+                data={{ labels: trends.labels, datasets: [{ data: trends.pace }] }}
+                width={chartWidth}
+                height={170}
+                chartConfig={chartConfig}
+                style={styles.chart}
+                fromZero
+                bezier
+              />
+            </View>
+
+            <View style={styles.chartCard}>
+              <Text style={styles.chartTitle}>Heart-rate zone distribution</Text>
+              <View style={styles.zoneRow}>
+                {[1, 2, 3, 4, 5].map((z) => (
+                  <View key={z} style={styles.zoneItem}>
+                    <View style={[styles.zoneBar, { height: 8 + trends.zones[z - 1] * 14, backgroundColor: hrZoneColor(z) }]} />
+                    <Text style={styles.zoneLabel}>Z{z}</Text>
+                    <Text style={styles.zoneCount}>{trends.zones[z - 1]}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </View>
+        ) : null}
+
         {/* Run List */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Recent Sessions</Text>
           {runs.length > 0 ? (
             runs.slice().reverse().map((run) => (
-              <TouchableOpacity 
-                key={run.id} 
-                style={styles.runCard} 
+              <TouchableOpacity
+                key={run.id}
+                style={styles.runCard}
                 activeOpacity={0.7}
                 onPress={() => navigation.navigate('RunDetail', { run })}
               >
@@ -135,7 +216,9 @@ const HistoryScreen = ({ navigation }) => {
                   <View style={styles.runDetails}>
                     <Text style={styles.runDetailItem}>{(run.distance || 0).toFixed(2)} km</Text>
                     <Text style={styles.dot}> • </Text>
-                    <Text style={styles.runDetailItem}>{run.heartRate || '--'} bpm</Text>
+                    <Text style={styles.runDetailItem}>
+                      {run.heartRate != null ? `${run.heartRate} bpm` : '— HR'}
+                    </Text>
                   </View>
                 </View>
                 <Text style={styles.chevron}>›</Text>
@@ -274,6 +357,48 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     marginLeft: 4,
   },
+  chartCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  chartTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginBottom: 8,
+  },
+  chart: {
+    borderRadius: 12,
+  },
+  zoneRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'flex-end',
+    height: 90,
+    paddingTop: 8,
+  },
+  zoneItem: {
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
+  zoneBar: {
+    width: 28,
+    borderRadius: 8,
+    marginBottom: 6,
+  },
+  zoneLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
+  },
+  zoneCount: {
+    fontSize: 11,
+    color: COLORS.textMuted,
+  },
   runCard: {
     backgroundColor: COLORS.surface,
     borderRadius: 20,
@@ -351,7 +476,7 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     fontSize: 15,
     fontWeight: '500',
-  }
+  },
 });
 
 export default HistoryScreen;

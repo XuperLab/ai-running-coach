@@ -1,4 +1,3 @@
-// src/utils/storage.js
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEYS } from './constants';
 

@@ -26,6 +26,9 @@ npm-debug.*
 yarn-debug.*
 yarn-error.*
 
+# crash dumps
+core.*
+
 # macOS
 .DS_Store
 *.pem
@@ -39,3 +42,5 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+expo-qr.png
+RUN_REPORT.md

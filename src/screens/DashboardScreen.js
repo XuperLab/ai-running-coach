@@ -1,33 +1,68 @@
 // src/screens/DashboardScreen.js
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, RefreshControl, StatusBar } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, RefreshControl, StatusBar, Dimensions } from 'react-native';
+import { BarChart } from 'react-native-chart-kit';
 import { COLORS } from '../utils/constants';
 import { getRuns, getAchievements } from '../utils/storage';
 import { useFocusEffect } from '@react-navigation/native';
 
+const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+const chartConfig = {
+  backgroundGradientFrom: '#FFFFFF',
+  backgroundGradientTo: '#FFFFFF',
+  color: (opacity = 1) => `rgba(37, 99, 235, ${opacity})`,
+  strokeWidth: 2,
+  barPercentage: 0.6,
+  decimalPlaces: 1,
+  labelColor: () => COLORS.textMuted,
+};
+
 const DashboardScreen = ({ navigation, user }) => {
   const [weeklyStats, setWeeklyStats] = useState({ distance: '0.0', time: 0, runs: 0 });
   const [recentAchievements, setRecentAchievements] = useState([]);
+  const [weekData, setWeekData] = useState({ labels: [], values: [] });
   const [refreshing, setRefreshing] = useState(false);
 
   const loadData = async () => {
     try {
       const runs = await getRuns() || [];
       const achievements = await getAchievements() || [];
-      
+
       // Calculate weekly stats
       const now = new Date();
       const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      const thisWeekRuns = runs.filter(r => new Date(r.date) >= weekAgo);
-      
-      const distance = thisWeekRuns.reduce((sum, r) => sum + (r.distance || 0), 0);
+      const thisWeekRuns = runs.filter((r) => new Date(r.date) >= weekAgo);
+
+      const distance = thisWeekRuns.reduce((sum, r) => sum + (r.distance || 0), 0); // km
       const time = thisWeekRuns.reduce((sum, r) => sum + (r.duration || 0), 0);
-      
+
       setWeeklyStats({
-        distance: (distance / 1000).toFixed(1), // km
+        distance: distance.toFixed(1), // km (distance is stored in km)
         time: Math.floor(time / 60), // minutes
         runs: thisWeekRuns.length,
       });
+
+      // Per-day distance for the last 7 days (for the weekly chart)
+      const labels = [];
+      const values = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(now.getDate() - i);
+        const dayStart = new Date(d);
+        dayStart.setHours(0, 0, 0, 0);
+        const dayEnd = new Date(dayStart);
+        dayEnd.setDate(dayStart.getDate() + 1);
+        const dayDist = runs
+          .filter((r) => {
+            const rd = new Date(r.date);
+            return rd >= dayStart && rd < dayEnd;
+          })
+          .reduce((s, r) => s + (r.distance || 0), 0);
+        labels.push(DAY_LABELS[d.getDay()]);
+        values.push(Number(dayDist.toFixed(2)));
+      }
+      setWeekData({ labels, values });
 
       // Get recent achievements (last 3)
       setRecentAchievements(achievements.slice(-3).reverse());
@@ -48,10 +83,14 @@ const DashboardScreen = ({ navigation, user }) => {
     setRefreshing(false);
   };
 
+  const chartWidth = Dimensions.get('window').width - 48;
+  // Only show the distance chart once there is real recorded distance to plot.
+  const hasWeekData = weekData.values.some((v) => v > 0.05);
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />
@@ -62,7 +101,7 @@ const DashboardScreen = ({ navigation, user }) => {
             <Text style={styles.greetingLabel}>Welcome back,</Text>
             <Text style={styles.greetingName}>{user?.name || 'Runner'} 👋</Text>
           </View>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.profileButton}
             onPress={() => navigation.navigate('Profile')}
           >
@@ -70,8 +109,8 @@ const DashboardScreen = ({ navigation, user }) => {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity 
-          style={styles.heroCard} 
+        <TouchableOpacity
+          style={styles.heroCard}
           onPress={() => navigation.navigate('Generate')}
           activeOpacity={0.9}
         >
@@ -96,7 +135,7 @@ const DashboardScreen = ({ navigation, user }) => {
               <Text style={styles.sectionAction}>View All</Text>
             </TouchableOpacity>
           </View>
-          
+
           <View style={styles.statsGrid}>
             <View style={[styles.statBox, { backgroundColor: '#EFF6FF' }]}>
               <Text style={[styles.statValue, { color: COLORS.primary }]}>{weeklyStats.distance}</Text>
@@ -111,6 +150,21 @@ const DashboardScreen = ({ navigation, user }) => {
               <Text style={styles.statLabel}>Sessions</Text>
             </View>
           </View>
+
+          {hasWeekData ? (
+            <View style={styles.chartCard}>
+              <Text style={styles.chartTitle}>Distance this week (km)</Text>
+              <BarChart
+                data={{ labels: weekData.labels, datasets: [{ data: weekData.values }] }}
+                width={chartWidth}
+                height={180}
+                chartConfig={chartConfig}
+                style={styles.chart}
+                fromZero
+                showValuesOnTopOfBars
+              />
+            </View>
+          ) : null}
         </View>
 
         <View style={styles.section}>
@@ -120,7 +174,7 @@ const DashboardScreen = ({ navigation, user }) => {
               <Text style={styles.sectionAction}>See All</Text>
             </TouchableOpacity>
           </View>
-          
+
           <View style={styles.achievementsContainer}>
             {recentAchievements.length > 0 ? (
               recentAchievements.map((ach, index) => (
@@ -291,6 +345,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.textSecondary,
     fontWeight: '600',
+  },
+  chartCard: {
+    marginTop: 16,
+    backgroundColor: COLORS.surface,
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  chartTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginBottom: 8,
+  },
+  chart: {
+    borderRadius: 12,
   },
   achievementsContainer: {
     backgroundColor: COLORS.surface,

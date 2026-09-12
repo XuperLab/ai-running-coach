@@ -14,7 +14,7 @@ const OptionGroup = ({ label, options, selectedValue, onSelect, horizontal = tru
             key={option}
             activeOpacity={0.7}
             style={[
-              styles.option, 
+              styles.option,
               isActive && styles.optionActive,
               !horizontal && styles.optionFull
             ]}
@@ -87,31 +87,31 @@ const GenerateSessionScreen = ({ navigation }) => {
           </View>
         </View>
 
-        <OptionGroup 
-          label="Workout Type" 
-          options={WORKOUT_TYPES} 
-          selectedValue={workoutType} 
-          onSelect={setWorkoutType} 
+        <OptionGroup
+          label="Workout Type"
+          options={WORKOUT_TYPES}
+          selectedValue={workoutType}
+          onSelect={setWorkoutType}
         />
 
-        <OptionGroup 
-          label="Race Goal" 
-          options={RACE_GOALS} 
-          selectedValue={raceGoal} 
-          onSelect={setRaceGoal} 
+        <OptionGroup
+          label="Race Goal"
+          options={RACE_GOALS}
+          selectedValue={raceGoal}
+          onSelect={setRaceGoal}
         />
 
-        <OptionGroup 
-          label="Music Genre" 
-          options={MUSIC_GENRES} 
-          selectedValue={musicGenre} 
-          onSelect={setMusicGenre} 
+        <OptionGroup
+          label="Music Genre"
+          options={MUSIC_GENRES}
+          selectedValue={musicGenre}
+          onSelect={setMusicGenre}
         />
 
-        <OptionGroup 
-          label="Coach Voice Style" 
-          options={COACH_STYLES} 
-          selectedValue={coachStyle} 
+        <OptionGroup
+          label="Coach Voice Style"
+          options={COACH_STYLES}
+          selectedValue={coachStyle}
           onSelect={setCoachStyle}
           horizontal={false}
         />

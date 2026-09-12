@@ -3,7 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform, ActivityIndicator } from 'react-native';
 
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { COLORS } from './src/utils/constants';
@@ -77,25 +77,34 @@ const MainTabs = ({ user }) => {
 };
 
 const AppNavigator = () => {
-  const { user, login, logout } = useAuth();
+  const { user, login, logout, loading } = useAuth();
+
+  // Wait for the persisted session to load before deciding login vs app
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
+  }
 
   if (!user) {
     return <LoginScreen onLogin={login} />;
   }
 
   return (
-    <Stack.Navigator 
-      screenOptions={{ 
+    <Stack.Navigator
+      screenOptions={{
         headerShown: false,
-        animation: 'slide_from_right'
+        animation: 'slide_from_right',
       }}
     >
       <Stack.Screen name="Main">
         {() => <MainTabs user={user} />}
       </Stack.Screen>
-      <Stack.Screen 
-        name="ActiveRun" 
-        component={ActiveRunScreen} 
+      <Stack.Screen
+        name="ActiveRun"
+        component={ActiveRunScreen}
         options={{ gestureEnabled: false }} // Prevent accidental swipe back during run
       />
       <Stack.Screen name="Achievements" component={AchievementsScreen} />
@@ -116,6 +125,12 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   tabBar: {
     backgroundColor: COLORS.surface,
     borderTopWidth: 1,
