@@ -42,5 +42,7 @@ core.*
 # generated native folders
 /ios
 /android
+
+# local scratch
 expo-qr.png
 RUN_REPORT.md
